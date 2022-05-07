@@ -12,15 +12,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class Main {
 	private static final boolean debug = false;
 
-	private static final int imageWidth = 750;
-	private static final int imageHeight = 750;
-	public static Pair<byte[], Vector2d> getImageBytes(double X, double Y, double steer) throws IOException {
+	private static double odoX = 0;
+	private static double odoY = 0;
+	private static final DecimalFormat df = new DecimalFormat("#0.000");
+	private static final DecimalFormat df2 = new DecimalFormat("#000.000");
+	public static byte[] getImageBytes(double X, double Y, double steer, double ms) throws IOException {
 		double joyHeading = (getHeading(X, Y));
 		//while (joyHeading > 360) { joyHeading -= 360; }
 		//while (joyHeading < 0) { joyHeading += 360; }
@@ -51,20 +54,20 @@ public class Main {
 		double w3A = round(getHeading(X3, Y3));
 		double w4A = round(getHeading(X4, Y4));
 
-
-		BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		BufferedImage image = new BufferedImage((int)screenSize.getWidth()/2, (int)screenSize.getHeight()/2, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = image.createGraphics();
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, image.getWidth(), image.getHeight());
 
-		int width = image.getWidth()/2; int height = image.getWidth()/2; int vecScale = image.getWidth()/22; int spacing = image.getWidth()/16;
+		int width = (int) (image.getHeight()/1.75); int height = (int) (image.getHeight()/1.75);
+		int vecScale = (int) (image.getWidth()/19.25); int spacing = image.getWidth()/18;
 		g.setColor(Color.WHITE);
-		g.fillRect(0, 0, 2, 2);
 		g.fillRect(image.getWidth()/2 - width/2, image.getHeight()/2 - height/2, width, height);
 		g.setColor(Color.BLACK);
 		g.fillRect(image.getWidth()/2 - width/2+1, image.getHeight()/2 - height/2+1, width-2, height-2);
 
-		int font = image.getWidth() / 50;
+		int font = image.getWidth() / 65;
 		g.setStroke(new BasicStroke((int)Math.ceil(font/7D)));
 		g.setFont(new Font( "Courier New", Font.BOLD, font));
 
@@ -78,8 +81,10 @@ public class Main {
 		drawArrow(g, w1.x, w1.y, w1S, w1A, vecScale, 7, 10);
 		//drawArrow(g, w1.x, w1.y, w1.x + (int)Math.floor(X1*vecScale), w1.y - (int)Math.floor(Y1*vecScale), 7, 10);
 		g.setColor(Color.WHITE);
-		String w1i = "Angle: " + w1A + " Speed: " + w1S;
-		g.drawString(w1i, w1.x-(g.getFontMetrics().stringWidth(w1i)/2), w1.y - font - spacing);
+		String w1i1 = "Angle: " + df2.format(w1A);
+		g.drawString(w1i1, w1.x-(g.getFontMetrics().stringWidth(w1i1)/2), w1.y - font - spacing);
+		String w1i2 = "Speed:   " + df.format(w1S);
+		g.drawString(w1i2, w1.x-(g.getFontMetrics().stringWidth(w1i1)/2), w1.y - 2*font - spacing);
 
 
 		//Wheel 2 Vector
@@ -87,8 +92,10 @@ public class Main {
 		drawArrow(g, w2.x, w2.y, w2S, w2A, vecScale, 7, 10);
 		//drawArrow(g, w2.x, w2.y, w2.x + (int)Math.floor(X2*vecScale), w2.y - (int)Math.floor(Y2*vecScale), 7, 10);
 		g.setColor(Color.WHITE);
-		String w2i = "Angle: " + w2A + " Speed: " + w2S;
-		g.drawString(w2i, w2.x-(g.getFontMetrics().stringWidth(w2i)/2), w2.y - font - spacing);
+		String w2i1 = "Angle: " + df2.format(w2A);
+		g.drawString(w2i1, w2.x-(g.getFontMetrics().stringWidth(w2i1)/2), w2.y - font - spacing);
+		String w2i2 = "Speed:   " + df.format(w2S);
+		g.drawString(w2i2, w2.x-(g.getFontMetrics().stringWidth(w2i1)/2), w2.y - 2*font - spacing);
 
 
 		//Wheel 3 Vector
@@ -96,8 +103,10 @@ public class Main {
 		drawArrow(g, w3.x, w3.y, w3S, w3A, vecScale, 7, 10);
 		//drawArrow(g, w3.x, w3.y, w3.x + (int)Math.floor(X3*vecScale), w3.y - (int)Math.floor(Y3*vecScale), 7, 10);
 		g.setColor(Color.WHITE);
-		String w3i = "Angle: " + w3A + " Speed: " + w3S;
-		g.drawString(w3i, w3.x-(g.getFontMetrics().stringWidth(w3i)/2), w3.y + font + 10 + spacing);
+		String w3i1 = "Angle: " + df2.format(w3A);
+		g.drawString(w3i1, w3.x-(g.getFontMetrics().stringWidth(w3i1)/2), w3.y + 2*font + 10 + spacing);
+		String w3i2 = "Speed:   " + df.format(w3S);
+		g.drawString(w3i2, w3.x-(g.getFontMetrics().stringWidth(w3i1)/2), w3.y + font + 10 + spacing);
 
 
 		//Wheel 4 Vector
@@ -105,8 +114,10 @@ public class Main {
 		drawArrow(g, w4.x, w4.y, w4S, w4A, vecScale, 7, 10);
 		//drawArrow(g, w4.x, w4.y, w4.x + (int)Math.floor(X4*vecScale), w4.y - (int)Math.floor(Y4*vecScale), 7, 10);
 		g.setColor(Color.WHITE);
-		String w4i = "Angle: " + w4A + " Speed: " + w4S;
-		g.drawString(w4i, w4.x-(g.getFontMetrics().stringWidth(w4i)/2), w4.y + font + 10 + spacing);
+		String w4i1 = "Angle: " + df2.format(w4A);
+		g.drawString(w4i1, w4.x-(g.getFontMetrics().stringWidth(w4i1)/2), w4.y + 2*font + 10 + spacing);
+		String w4i2 = "Speed:   " + df.format(w4S);
+		g.drawString(w4i2, w4.x-(g.getFontMetrics().stringWidth(w4i1)/2), w4.y + font + 10 + spacing);
 
 
 		double oX = (X1 + X2 + X3 + X4) * 0.25;
@@ -118,7 +129,7 @@ public class Main {
 		//}
 
 		if (debug) { System.out.println("oX: " + oX + " oY: " + oY); }
-		int oScale = (int) Math.floor(image.getWidth()/6.6666);
+		int oScale = (int) Math.floor(image.getWidth()/8D);
 		g.setColor(Color.CYAN);
 		g.setStroke(new BasicStroke((float) (font/4D)));
 		drawArrow(g,
@@ -131,19 +142,37 @@ public class Main {
 		g.setColor(Color.WHITE);
 		String oStr = "Odometry Vector";
 		g.drawString(oStr, image.getWidth()/2 - g.getFontMetrics().stringWidth(oStr)/2, image.getHeight()/2 + font + 10);
-		String oStrA = "Angle: " + round(getHeading(oX, oY));
+		String oStrA = "Angle: " + roundStr(getHeading(oX, oY));
 		g.drawString(oStrA, image.getWidth()/2 - g.getFontMetrics().stringWidth(oStrA)/2, image.getHeight()/2 + 2*font + 10);
 
-		font = image.getWidth()/22;
+		font = image.getHeight()/22;
 		g.setFont(new Font( "Courier New", Font.BOLD, font));
-		g.drawString("XL (Drive X): " + round(X), 10, font-5);
-		g.drawString("YL (Drive Y): " + round(Y), 10, 2*font-5);
-		g.drawString("XR (Steer):   " + round(steer), 10, 3*font-5);
-		g.drawString("Heading: " + round(joyHeading), 10, image.getHeight()-10);
+		g.drawString("XL (Drive X): " + roundStr(X), 5, font-5);
+		g.drawString("YL (Drive Y): " + roundStr(Y), 5, 2*font-5);
+		g.drawString("XR (Steer):   " + roundStr(steer), 5, 3*font-5);
+		g.drawString("Heading: " + roundStr(joyHeading), 5, image.getHeight()-10);
+
+		odoX += oY/1000D * ms;
+		odoY += -oX/1000D * ms;
+		String odo = "Odometry: " + roundStr(odoX) + ", " + roundStr(odoY);
+		g.drawString(odo,  image.getWidth()-g.getFontMetrics().stringWidth(odo)-5, image.getHeight()-10);
+
+		String delay = "ms: " + (int)Math.floor(ms);
+		g.drawString(delay,  image.getWidth()-g.getFontMetrics().stringWidth(delay)-5, font-5);
+		String fps = "fps: " + (int)Math.floor(1000D/ms);
+		g.drawString(fps,  image.getWidth()-g.getFontMetrics().stringWidth(fps)-5, 2*font-5);
+
+		g.setColor(Color.CYAN);
+		String exit = "Exit: ESC";
+		g.drawString(exit,  image.getWidth()/2-g.getFontMetrics().stringWidth(exit)/2, font);
+
+
 
 		g.dispose();
 
-		return Pair.of(toByteArray(image, "png"), new Vector2d(oX, oY));
+		return toByteArray(image, "PNG");
+		//return image;
+
 		//ImageIO.write(image, "png", new File(imagePath));
 		//System.out.println("Image Wrote to File");
 	}
@@ -206,9 +235,17 @@ public class Main {
 	}
 
 
+	public static String roundStr(double value) {
+		BigDecimal bd = new BigDecimal(Double.toString(value));
+		bd = bd.setScale(3, RoundingMode.HALF_UP);
+
+		return df.format(bd.doubleValue());
+	}
+
 	public static double round(double value) {
 		BigDecimal bd = new BigDecimal(Double.toString(value));
 		bd = bd.setScale(3, RoundingMode.HALF_UP);
+
 		return bd.doubleValue();
 	}
 
@@ -257,32 +294,25 @@ public class Main {
 	}
 
 	private static double lastMs = 0;
-	private static double odoX = 0;
-	private static double odoY = 0;
-	private static ImageGui gui = null;
+	private static ImageFrame gui = null;
 	public static void run(double x, double y, double steer) {
 		try {
-			Pair<byte[], Vector2d> data = getImageBytes(x, y, steer);
-			byte[] bytes = data.getA();
-			if (gui == null) {
-				gui = new ImageGui(bytes);
-				gui.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-				gui.setExtendedState(JFrame.MAXIMIZED_BOTH);
-				//gui.setUndecorated(true);
-				gui.setVisible(true);
-			}else {
-				gui.updateImage(bytes);
-			}
-
 			if (lastMs == 0) {
 				lastMs = System.currentTimeMillis(); return;
 			}
 			double change = System.currentTimeMillis() - lastMs;
+			lastMs = System.currentTimeMillis();
 
-			Vector2d odometry = data.getB();
-			odoX += odometry.y/1000D * change/1000D;
-			odoY += -odometry.x/1000D * change/1000D;
-			gui.updateOdometer(odoX, odoY);
+			byte[] image = getImageBytes(x, y, steer, change);
+			if (gui == null) {
+				gui = new ImageFrame(image);
+				gui.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+				gui.setExtendedState(JFrame.MAXIMIZED_BOTH);
+				gui.setUndecorated(true);
+				gui.setVisible(true);
+			}else {
+				gui.updateImage(image);
+			}
 		}catch (IOException e) {
 			e.printStackTrace();
 		}catch (NullPointerException ignored) {}
@@ -304,9 +334,12 @@ public class Main {
 		return byteArrayOut.toByteArray();
 	}
 
-
 	private static final double joyInterval = 0.1;
 	public static void main(String[] args) {
+		final double[] x = {0};
+		final double[] y = { 0 };
+		final double[] steer = { 0 };
+
 		KeyListener forward = new KeyListener(KeyEvent.VK_W, KeyEvent.VK_UP);
 		KeyListener left = new KeyListener(KeyEvent.VK_A, KeyEvent.VK_LEFT);
 		KeyListener back = new KeyListener(KeyEvent.VK_S, KeyEvent.VK_DOWN);
@@ -315,9 +348,6 @@ public class Main {
 		KeyListener eKey = new KeyListener(KeyEvent.VK_E);
 		KeyListener escKey = new KeyListener(KeyEvent.VK_ESCAPE);
 
-		final double[] x = {0};
-		final double[] y = { 0 };
-		final double[] steer = { 0 };
 		(new Timer()).schedule(new TimerTask() {
 			@Override
 			public void run() {
