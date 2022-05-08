@@ -1,4 +1,4 @@
-package com.pantherbotics.swervesim.util;
+package com.pantherbotics.swervesim;
 
 import javax.swing.*;
 import java.awt.*;

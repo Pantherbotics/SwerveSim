@@ -1,15 +1,12 @@
-package com.pantherbotics.swervesim.util;
+package com.pantherbotics.swervesim;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 
 public class ImagePanel extends JPanel {
-
-	Image image;
+	private Image image;
 
 	public void setImage(byte[] bytes) {
-		//image = Toolkit.getDefaultToolkit().createImage(bytes);
 		this.image = new ImageIcon(bytes).getImage();
 	}
 
