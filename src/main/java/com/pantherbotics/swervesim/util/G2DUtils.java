@@ -8,6 +8,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import static com.pantherbotics.swervesim.util.MathUtils.getHeadingX;
+import static com.pantherbotics.swervesim.util.MathUtils.getHeadingY;
+
 @SuppressWarnings("unused")
 public class G2DUtils {
 
@@ -82,16 +85,15 @@ public class G2DUtils {
 	 * @param x1 x-position of first point.
 	 * @param y1 y-position of first point.
 	 * @param speed the speed of the wheel vector.
-	 * @param hX the heading X value from current heading angle.
-	 * @param hY the heading Y value from current heading angle.
+	 * @param angle the current heading angle.
 	 * @param scale the vector scale for the arrow.
 	 * @param w the width of the arrow head.
 	 * @param h the height of the arrow head.
 	 */
-	public static void drawArrow(Graphics2D g, int x1, int y1, double speed, double hX, double hY, int scale, int w, int h) {
+	public static void drawArrow(Graphics2D g, int x1, int y1, double speed, double angle, int scale, int w, int h) {
 		drawArrow(g, x1, y1,
-				x1 + (int)Math.floor(hX * speed * scale),
-				y1 - (int)Math.ceil(hY * speed * scale),
+				x1 + (int)Math.floor(getHeadingX(angle) * speed * scale),
+				y1 - (int)Math.ceil(getHeadingY(angle) * speed * scale),
 				w, h);
 	}
 

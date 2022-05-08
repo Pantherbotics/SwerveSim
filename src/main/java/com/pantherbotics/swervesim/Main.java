@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static com.pantherbotics.swervesim.util.G2DUtils.drawRect;
 import static com.pantherbotics.swervesim.util.G2DUtils.toByteArray;
 import static com.pantherbotics.swervesim.util.MathUtils.*;
 
@@ -21,7 +22,7 @@ public class Main {
 	//---------------End of Editable Variables-----------------
 
 
-	private static double odoX = 0, odoY = 0, lastMs = 0;
+	private static double odoX = 0, odoY = 0, odoR = 0, lastMs = 0;
 	private static SwerveModule wheel1, wheel2, wheel3, wheel4;
 
 	private static final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -30,9 +31,10 @@ public class Main {
 	//Size of the swerve box (in pixels)
 	private static final int width = (int) ((screenSize.getHeight()* screenScale)/1.75);
 	private static final int height = (int) ((screenSize.getHeight()* screenScale)/1.75);
-	//Scalar for vectors and spacing in pixels for wheel centers
+	//Scalar for vectors
 	private static final int vecScale = (int) ((screenSize.getWidth()* screenScale)/28);
-	private static final int spacing = (int) ((screenSize.getWidth()* screenScale)/18);
+	//From each module corner the wheel will be at this factor from the center to the corner
+	private static final double startFactor = 0.9;
 
 	/**
 	 * Generate and return the byte array of the simulation image.
@@ -42,16 +44,21 @@ public class Main {
 	 * @return the byte array of the simulation image
 	 */
 	public static byte[] getImageBytes(double X, double Y, double steer) throws IOException {
+		//Update the rotation of the swerve
+		odoR += steer; odoR = odoR % 360;
+		wheel1.setSwerveRot(odoR); wheel2.setSwerveRot(odoR); wheel3.setSwerveRot(odoR); wheel4.setSwerveRot(odoR);
+
 		double joyHeading = (getHeading(X, Y));
-		double speed = getSpeed(X, Y);
+		double heading = joyHeading - odoR;
+		double speed = getJoystickSpeed(X, Y);
 		//double speed = (Math.sqrt(X*X + Y*Y)) / 1.41421356; // [-1, 1] of the speed of the left joystick
 
 		double xr = steer * Math.cos(Math.toRadians(45)); // /2D normally
 		double yr = steer * Math.sin(Math.toRadians(45)); // /2D normally
 		double speedMax = Math.sqrt(xr*xr + (1+Math.abs(yr))*(1+Math.abs(yr))); //The largest possible speed from vectors
 
-		double x = getHeadingX(joyHeading);
-		double y = getHeadingY(joyHeading);
+		double x = getHeadingX(heading);
+		double y = getHeadingY(heading);
 		double X1 = x*speed + xr;
 		double Y1 = y*speed + yr;
 		double X2 = x*speed + xr;
@@ -77,9 +84,11 @@ public class Main {
 
 		//Draw the swerve box
 		g.setColor(Color.WHITE);
-		g.fillRect(image.getWidth()/2 - width/2, image.getHeight()/2 - height/2, width, height);
-		g.setColor(Color.BLACK);
-		g.fillRect(image.getWidth()/2 - width/2+1, image.getHeight()/2 - height/2+1, width-2, height-2);
+		drawRect(g, image.getWidth()/2, image.getHeight()/2, width, height, odoR);
+
+		//g.fillRect(image.getWidth()/2 - width/2, image.getHeight()/2 - height/2, width, height);
+		//g.setColor(Color.BLACK);
+		//g.fillRect(image.getWidth()/2 - width/2+1, image.getHeight()/2 - height/2+1, width-2, height-2);
 
 		//Define the font based on the screen size
 		int font = image.getWidth() / 65;
@@ -87,14 +96,26 @@ public class Main {
 		g.setFont(new Font( "Courier New", Font.BOLD, font));
 
 		//Draw the wheel vectors to the image
-		wheel1.draw(g, w1A, w1S, font, spacing, vecScale);
-		wheel2.draw(g, w2A, w2S, font, spacing, vecScale);
-		wheel3.draw(g, w3A, w3S, font, spacing, vecScale);
-		wheel4.draw(g, w4A, w4S, font, spacing, vecScale);
+		wheel1.draw(g, w1A, w1S, font, startFactor, width, height, vecScale);
+		wheel2.draw(g, w2A, w2S, font, startFactor, width, height, vecScale);
+		wheel3.draw(g, w3A, w3S, font, startFactor, width, height, vecScale);
+		wheel4.draw(g, w4A, w4S, font, startFactor, width, height, vecScale);
 
 		//Calculate the odometry vector
 		double oX = (X1 + X2 + X3 + X4) * 0.25;
 		double oY = (Y1 + Y2 + Y3 + Y4) * 0.25;
+		double oHeading = getHeading(oX, oY);
+		double oSpeed = Math.sqrt(oX*oX + oY*oY);
+		oX = getHeadingX(oHeading+odoR) * oSpeed;
+		oY = getHeadingY(oHeading+odoR) * oSpeed;
+
+		System.out.println("X1: " + X1 + " X2: " + X2 + " X3: " + X3 + " X4: " + X4);
+		System.out.println("Y1: " + Y1 + " Y2: " + Y2 + " Y3: " + Y3 + " Y4: " + Y4);
+		System.out.println("Heading: " + oHeading + " oX: " + oX + " oY: " + oY + " oSpeed: " + oSpeed);
+		System.out.println(" ");
+
+
+
 		int oScale = (int) Math.floor(image.getWidth()/10D);
 		g.setColor(Color.CYAN);
 		g.setStroke(new BasicStroke((float) (font/4D)));
@@ -118,7 +139,9 @@ public class Main {
 		g.drawString("XL (Drive X): " + roundStr(X, 3), 5, font-5);
 		g.drawString("YL (Drive Y): " + roundStr(Y, 3), 5, 2*font-5);
 		g.drawString("XR (Steer):   " + roundStr(steer, 3), 5, 3*font-5);
-		g.drawString("Heading: " + roundStr(joyHeading, 3), 5, image.getHeight()-10);
+		g.drawString("Heading: " + roundStr(heading, 3), 5, image.getHeight()-10);
+
+		g.drawString("Rotation:     " + roundStr(odoR, 1), 5, 4*font-5);
 
 		//Odometry
 		if (lastMs == 0) {
@@ -182,13 +205,17 @@ public class Main {
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
-		double w = screenSize.getWidth() * screenScale;
-		double h = screenSize.getHeight() * screenScale;
+		int w = (int) (screenSize.getWidth() * screenScale);
+		int h = (int) (screenSize.getHeight() * screenScale);
 
-		wheel1 = new SwerveModule(1, (int) (w/2 - width/2 + spacing), (int) (h/2 -height/2 + spacing));
-		wheel2 = new SwerveModule(2, (int) (w/2 + width/2 - spacing), (int) (h/2 -height/2 + spacing));
-		wheel3 = new SwerveModule(3, (int) (w/2 + width/2 - spacing), (int) (h/2 + height/2 - spacing));
-		wheel4 = new SwerveModule(4, (int) (w/2 - width/2 + spacing), (int) (h/2 + height/2 - spacing));
+		//wheel1 = new SwerveModule(1, (-width/2 + startFactor), (-height/2 + startFactor), w, h);
+		//wheel2 = new SwerveModule(2, ( width/2 - startFactor), (-height/2 + startFactor), w, h);
+		//wheel3 = new SwerveModule(3, ( width/2 - startFactor), ( height/2 - startFactor), w, h);
+		//wheel4 = new SwerveModule(4, (-width/2 + startFactor), ( height/2 - startFactor), w, h);
+		wheel1 = new SwerveModule(1, w, h);
+		wheel2 = new SwerveModule(2, w, h);
+		wheel3 = new SwerveModule(3, w, h);
+		wheel4 = new SwerveModule(4, w, h);
 
 		final double[] x = {0};
 		final double[] y = { 0 };

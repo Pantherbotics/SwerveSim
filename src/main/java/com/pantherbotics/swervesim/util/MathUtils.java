@@ -104,13 +104,16 @@ public class MathUtils {
 	/**
 	 * Returns a speed value from [-1, 1] based on joystick X and Y inputs
 	 * More critically it's snapped to the unit circle so X=1 Y=1 won't be sqrt(2)
-	 * @param X the X of a coordinate
-	 * @param Y the Y of a coordinate
+	 * @param X the X of a coordinate [-1, 1]
+	 * @param Y the Y of a coordinate [-1, 1]
 	 */
-	public static double getSpeed(double X, double Y) {
-		double angle = getHeading(X, Y);
-		double x = getHeadingX(angle) * X;
-		double y = getHeadingY(angle) * Y;
-		return Math.sqrt(x*x + y*y);
+	public static double getJoystickSpeed(double X, double Y) {
+		Vector2d vector = new Vector2d(X, Y);
+
+		double angle = Math.atan2(vector.x, vector.y);
+		double maxMagnitude = Math.abs(vector.x) > Math.abs(vector.y)
+				? 1 / Math.sin(angle)
+				: 1 / Math.cos(angle);
+		return Math.abs(vector.magnitude() / maxMagnitude);
 	}
 }
