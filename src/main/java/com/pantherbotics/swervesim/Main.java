@@ -21,10 +21,11 @@ public class Main {
 	private static final double shift = 0.05; //Shifts X, Y, and steer values by this amount to make it more fluid
 	//---------------End of Editable Variables-----------------
 
-
+	//Odometry and module variables
 	private static double odoX = 0, odoY = 0, odoR = 0, lastMs = 0;
 	private static SwerveModule wheel1, wheel2, wheel3, wheel4;
 
+	//Define the screen size and scale (can decrease scale for higher fps but lower resolution)
 	private static final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 	private static final double screenScale = 0.5;
 
@@ -48,15 +49,17 @@ public class Main {
 		odoR += steer; odoR = odoR % 360;
 		wheel1.setSwerveRot(odoR); wheel2.setSwerveRot(odoR); wheel3.setSwerveRot(odoR); wheel4.setSwerveRot(odoR);
 
+		//Obtain joystick data and define the heading
 		double joyHeading = (getHeading(X, Y));
 		double heading = joyHeading - odoR;
 		double speed = getJoystickSpeed(X, Y);
-		//double speed = (Math.sqrt(X*X + Y*Y)) / 1.41421356; // [-1, 1] of the speed of the left joystick
 
+		//Define the steering vector components and the max vector length
 		double xr = steer * Math.cos(Math.toRadians(45)); // /2D normally
 		double yr = steer * Math.sin(Math.toRadians(45)); // /2D normally
 		double speedMax = Math.sqrt(xr*xr + (1+Math.abs(yr))*(1+Math.abs(yr))); //The largest possible speed from vectors
 
+		//Calculate the vectors for all wheels
 		double x = getHeadingX(heading);
 		double y = getHeadingY(heading);
 		double X1 = x*speed + xr;
@@ -67,6 +70,8 @@ public class Main {
 		double Y3 = y*speed - yr;
 		double X4 = x*speed - xr;
 		double Y4 = y*speed + yr;
+		//From the wheel vectors, calculate the wheel speeds [-1, 1] and angles (deg)
+		//We round here for convenience when displaying values, on a real swerve you'd want all the decimals
 		double w1S = round(speedMax == 0 ? 0 : Math.sqrt(X1*X1+Y1*Y1)/speedMax, 3);
 		double w2S = round(speedMax == 0 ? 0 : Math.sqrt(X2*X2+Y2*Y2)/speedMax, 3);
 		double w3S = round(speedMax == 0 ? 0 : Math.sqrt(X3*X3+Y3*Y3)/speedMax, 3);
@@ -85,10 +90,6 @@ public class Main {
 		//Draw the swerve box
 		g.setColor(Color.WHITE);
 		drawRect(g, image.getWidth()/2, image.getHeight()/2, width, height, odoR);
-
-		//g.fillRect(image.getWidth()/2 - width/2, image.getHeight()/2 - height/2, width, height);
-		//g.setColor(Color.BLACK);
-		//g.fillRect(image.getWidth()/2 - width/2+1, image.getHeight()/2 - height/2+1, width-2, height-2);
 
 		//Define the font based on the screen size
 		int font = image.getWidth() / 65;
@@ -109,13 +110,7 @@ public class Main {
 		oX = getHeadingX(oHeading+odoR) * oSpeed;
 		oY = getHeadingY(oHeading+odoR) * oSpeed;
 
-		System.out.println("X1: " + X1 + " X2: " + X2 + " X3: " + X3 + " X4: " + X4);
-		System.out.println("Y1: " + Y1 + " Y2: " + Y2 + " Y3: " + Y3 + " Y4: " + Y4);
-		System.out.println("Heading: " + oHeading + " oX: " + oX + " oY: " + oY + " oSpeed: " + oSpeed);
-		System.out.println(" ");
-
-
-
+		//Draw the odometry vector to the image
 		int oScale = (int) Math.floor(image.getWidth()/10D);
 		g.setColor(Color.CYAN);
 		g.setStroke(new BasicStroke((float) (font/4D)));
@@ -140,10 +135,10 @@ public class Main {
 		g.drawString("YL (Drive Y): " + roundStr(Y, 3), 5, 2*font-5);
 		g.drawString("XR (Steer):   " + roundStr(steer, 3), 5, 3*font-5);
 		g.drawString("Heading: " + roundStr(heading, 3), 5, image.getHeight()-10);
-
+		//Add rotation to the screen
 		g.drawString("Rotation:     " + roundStr(odoR, 1), 5, 4*font-5);
 
-		//Odometry
+		//Calculate time (in ms) since the last frame
 		if (lastMs == 0) {
 			lastMs = System.currentTimeMillis();
 		}
@@ -173,7 +168,6 @@ public class Main {
 	}
 
 	private static ImageFrame gui = null;
-
 	/**
 	 * Initiates and updates the GUI.
 	 * @param x the X value of the joystick
@@ -205,22 +199,22 @@ public class Main {
 	 * @param args the command line arguments
 	 */
 	public static void main(String[] args) {
+		//Calculate the width and height of the image
 		int w = (int) (screenSize.getWidth() * screenScale);
 		int h = (int) (screenSize.getHeight() * screenScale);
 
-		//wheel1 = new SwerveModule(1, (-width/2 + startFactor), (-height/2 + startFactor), w, h);
-		//wheel2 = new SwerveModule(2, ( width/2 - startFactor), (-height/2 + startFactor), w, h);
-		//wheel3 = new SwerveModule(3, ( width/2 - startFactor), ( height/2 - startFactor), w, h);
-		//wheel4 = new SwerveModule(4, (-width/2 + startFactor), ( height/2 - startFactor), w, h);
+		//Create the SwerveModule objects
 		wheel1 = new SwerveModule(1, w, h);
 		wheel2 = new SwerveModule(2, w, h);
 		wheel3 = new SwerveModule(3, w, h);
 		wheel4 = new SwerveModule(4, w, h);
 
+		//Create the joystick component variables
 		final double[] x = {0};
 		final double[] y = { 0 };
 		final double[] steer = { 0 };
 
+		//Start listening to key events
 		KeyListener forward = new KeyListener(KeyEvent.VK_W, KeyEvent.VK_UP);
 		KeyListener left = new KeyListener(KeyEvent.VK_A, KeyEvent.VK_LEFT);
 		KeyListener back = new KeyListener(KeyEvent.VK_S, KeyEvent.VK_DOWN);
@@ -229,9 +223,11 @@ public class Main {
 		KeyListener eKey = new KeyListener(KeyEvent.VK_E);
 		KeyListener escKey = new KeyListener(KeyEvent.VK_ESCAPE);
 
+		//Run the simulation every 16ms (~60fps)
 		(new Timer()).schedule(new TimerTask() {
 			@Override
 			public void run() {
+				//Update the joystick values based on key inputs
 				if (escKey.isPressed()) { System.exit(0); }
 
 				if (forward.isPressed()) { y[0] = Math.min(1, y[0] + shift); }
@@ -246,6 +242,7 @@ public class Main {
 				if (eKey.isPressed()) { steer[0] = Math.min(1, steer[0] + shift); }
 				if (!qKey.isPressed() && !eKey.isPressed()) { steer[0] = approachZero(steer[0], shift); }
 
+				//Run the simulation
 				Main.run(x[0], y[0], steer[0]);
 			}
 		}, 1000, 16);
